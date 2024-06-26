@@ -110,13 +110,12 @@ class HiAnimeProvider : MainAPI() {
 
     override val mainPage =
             mainPageOf(
+                    "$mainUrl/recently-updated?page=" to "Latest Episodes",
+                    "$mainUrl/recently-added?page=" to "New On HiAnime",
                     "$mainUrl/top-airing?page=" to "Top Airing",
-                    // "$mainUrl/ajax/home/widget/updated-all?page=" to "All",
-                    // "$mainUrl/ajax/home/widget/updated-sub?page=" to "Recently Updated (SUB)",
-                    // "$mainUrl/ajax/home/widget/updated-dub?page=" to "Recently Updated (DUB)",
-                    // "$mainUrl/ajax/home/widget/updated-china?page=" to "Recently Updated
-                    // (Chinese)",
-                    // "$mainUrl/ajax/home/widget/random?page=" to "Random",
+                    "$mainUrl/most-popular?page=" to "Most Popular",
+                    "$mainUrl/most-favorite?page=" to "Most Favorite",
+                    "$mainUrl/completed?page=" to "Latest Completed",
                     )
 
     override suspend fun search(query: String): List<SearchResponse> {
