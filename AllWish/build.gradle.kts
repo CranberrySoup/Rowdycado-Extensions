@@ -4,7 +4,7 @@ dependencies {
     implementation("androidx.recyclerview:recyclerview:1.3.2")
 }
 // use an integer for version numbers
-version = 8
+version = 10
 
 
 cloudstream {

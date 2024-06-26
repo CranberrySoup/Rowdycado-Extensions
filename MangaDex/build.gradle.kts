@@ -6,7 +6,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
 }
 // use an integer for version numbers
-version = 10
+version = 11
 
 
 cloudstream {
