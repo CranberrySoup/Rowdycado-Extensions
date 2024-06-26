@@ -1,7 +1,6 @@
 package com.KillerDogeEmpire
 
 import android.util.Base64
-import android.util.Log
 import com.KillerDogeEmpire.DumpUtils.queryApi
 import com.KillerDogeEmpire.CodeStream.Companion.anilistAPI
 import com.KillerDogeEmpire.CodeStream.Companion.crunchyrollAPI
@@ -101,8 +100,6 @@ fun Document.getMirrorServer(server: Int): String {
 
 suspend fun extractMirrorUHD(url: String, ref: String): String? {
     var baseDoc = app.get(fixUrl(url, ref)).document
-    Log.d("TEst Mirror",baseDoc.toString())
-    Log.d("TEst Mirror",baseDoc.toString())
     var downLink = baseDoc.getMirrorLink()
     run lit@{
         (1..2).forEach {
@@ -199,11 +196,8 @@ suspend fun extractResumeUHD(url: String): String? {
 }
 
 suspend fun extractPixeldrainUHD(url: String): String? {
-    Log.d("Test iselector frame",url.toString())
     app.get("https://driveleech.org$url").document.let {
-        Log.d("Test iselector frame",it.toString())
         val url = it.selectFirst("a.btn.btn-outline-info:contains(pixel)")?.attr("href").toString()
-        Log.d("Test iselector frame",url)
         return url
     }
 }

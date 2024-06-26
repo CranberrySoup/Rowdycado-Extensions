@@ -1,7 +1,6 @@
 package com.KillerDogeEmpire
 
 import android.annotation.SuppressLint
-import android.util.Log
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.APIHolder.unixTimeMS
 import com.lagradost.cloudstream3.utils.*
@@ -207,7 +206,6 @@ object CodeExtractor : CodeStream() {
             val scope: Scriptable = rhino.initSafeStandardObjects()
             rhino.evaluateString(scope, firstJS+script, "JavaScript", 1, null)
             val file=(scope.get("globalArgument", scope).toJson()).toString().substringAfter("file\":\"").substringBefore("\",")
-            //Log.d("Test",file)
             callback.invoke(
                     ExtractorLink(
                             source = "MultiEmbeded API",
@@ -918,10 +916,8 @@ object CodeExtractor : CodeStream() {
             app.get("$kimcartoonAPI/Cartoon/$fixTitle").document
         } else {
             val res = app.get("$kimcartoonAPI/Cartoon/$fixTitle-Season-$season")
-            //Log.d("Test res iSelector",res.toString())
             if (res.url == "$kimcartoonAPI/") app.get("$kimcartoonAPI/Cartoon/$fixTitle-Season-0$season").document else res.document
         }
-        //Log.d("Test iSelector",doc.toString())
         val iframe = if (season == null) {
             doc.select("table.listing tr td a").firstNotNullOf { it.attr("href") }
         } else {
@@ -929,7 +925,6 @@ object CodeExtractor : CodeStream() {
                 it.attr("href").contains(Regex("(?i)Episode-0*$episode"))
             }?.attr("href")
         } ?: return
-        //Log.d("Test iSelector",iframe.toString())
         val servers =
                 app.get(
                         fixUrl(
@@ -938,7 +933,6 @@ object CodeExtractor : CodeStream() {
                         )
                 ).document.select("#selectServer > option")
                         .map { fixUrl(it.attr("value"), kimcartoonAPI) }
-        //Log.d("Test iSelector",servers.toString())
         servers.apmap {
             app.get(it).document.select("#my_video_1").attr("src").let { iframe ->
                 if (iframe.isNotEmpty()) {
@@ -962,20 +956,17 @@ object CodeExtractor : CodeStream() {
         } else {
             "$azseriesAPI/episodes/$fixTitle-season-$season-episode-$episode"
         }
-        Log.d("Test",url.toString())
         val res= app.get(url)
         if (res.code==200)
         {
             val document=res.document
             val id=document.selectFirst("#show_player_lazy")?.attr("movie-id").toString()
-            Log.d("Test",id.toString())
             val server_doc= app.post("$azseriesAPI/wp--admin/admin-ajax.php", data = mapOf(
                     "action" to "lazy_player",
                     "movieID" to id,
             )).document
             val server_list= mutableListOf<String>()
             val servers_url=server_doc.select("#playeroptions")
-            Log.d("Test",servers_url.toString())
         }
     }
 
@@ -1039,7 +1030,6 @@ object CodeExtractor : CodeStream() {
         } else {
             "$vidsrctoAPI/embed/tv/$imdbId/$season/$episode"
         }
-        //Log.d("test vidsrc",url)
         loadExtractor(url, subtitleCallback, callback)
     }
 
@@ -1471,7 +1461,6 @@ object CodeExtractor : CodeStream() {
         } else {
             "div.entry-content p:has(:matches((?i)(?:S\\s*$seasonSlug|Season\\s*$seasonSlug)))"
         }
-        //Log.d("Test iSelector",iSelector.toString())
         val iframeList = detailDoc.select(iSelector).mapNotNull {
             if (season == null) {
                 it.text() to it.nextElementSibling()?.select("a")?.attr("href")
@@ -1481,7 +1470,6 @@ object CodeExtractor : CodeStream() {
                 }?.attr("href")
             }
         }.filter { it.first.contains(Regex("(2160p)|(1080p)")) }.reversed().takeLast(3)
-        //Log.d("Test iSelector",iframeList.toString())
         iframeList.apmap { (quality, link) ->
             val driveLink = bypassHrefli(link ?: return@apmap)
             val base = getBaseUrl(driveLink ?: return@apmap)
@@ -1512,7 +1500,6 @@ object CodeExtractor : CodeStream() {
             val resume = extractResumeUHD(bitLink)
             val pixeldrain=extractPixeldrainUHD(bitLink)
             val serverslist = listOf(downloadLink, resume,pixeldrain)
-            //Log.d("Test iSelector",serverslist.toString())
             val tags = getUhdTags(quality)
             val qualities = getIndexQuality(quality)
             val size = getIndexSize(quality)
@@ -2069,7 +2056,6 @@ object CodeExtractor : CodeStream() {
         } else {
             "$smashyStreamAPI/data.php?tmdb=$tmdbId&season=$season&episode=$episode"
         }
-        //Log.d("Test json",url.toString())
         val document= app.get(url, referer = "https://smashystream.xyz/").document
         val json=app.get(
                 url,
@@ -2077,16 +2063,12 @@ object CodeExtractor : CodeStream() {
         ).parsedSafe<SmashyRoot>()
         val link=json?.urlArray
         val urls = link?.map { it.url }
-        //Log.d("Test json",urls.toString())
         urls?.map { links->
-            Log.d("Test json",links)
             val doc= app.get(links, referer = "https://smashystream.xyz/").document
             val string=doc.toString().substringAfter("#2").substringBefore("\"")
                     .replace(Regex("//.{16}"), "")
                     .let { base64Decode(it) }
                     .toString()
-            //Log.d("Test json",string)
-            //Log.d("Test json",doc.toString())
         }
     }
 

@@ -1,7 +1,6 @@
 package com.KillerDogeEmpire
 
 //import com.KillerDogeEmpire.CodeExtractor.invokeWatchasian
-import android.util.Log
 import com.KillerDogeEmpire.CodeExtractor.invoke2embed
 import com.KillerDogeEmpire.CodeExtractor.invokeAllMovieland
 import com.KillerDogeEmpire.CodeExtractor.invokeAnimes
@@ -248,14 +247,12 @@ open class CodeStream : TmdbProvider() {
     override suspend fun load(url: String): LoadResponse? {
         val data = parseJson<Data>(url)
         val type = getType(data.type)
-        Log.d("Test1","$type")
         val append = "alternative_titles,credits,external_ids,keywords,videos,recommendations"
         val resUrl = if (type == TvType.Movie) {
             "$tmdbAPI/movie/${data.id}?api_key=$apiKey&append_to_response=$append"
         } else {
             "$tmdbAPI/tv/${data.id}?api_key=$apiKey&append_to_response=$append"
         }
-        Log.d("Test1",resUrl)
         println(resUrl)
         val res = app.get(resUrl).parsedSafe<MediaDetail>()
                 ?: throw ErrorLoadingException("Invalid Json Response")
@@ -412,7 +409,6 @@ open class CodeStream : TmdbProvider() {
     ): Boolean {
 
         val res = parseJson<LinkData>(data)
-        Log.d("Test1", "$res")
         println(res)
         val functions = listOf<suspend () -> Unit>(
                 {

@@ -1,9 +1,12 @@
 package com.KillerDogeEmpire
 
+import com.KillerDogeEmpire.MoviesDriveProvider.Mdrive
 import com.KillerDogeEmpire.UltimaUtils.Category
 import com.KillerDogeEmpire.UltimaUtils.LinkData
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.cloudstream3.SubtitleFile
 import com.lagradost.cloudstream3.amap
+import com.lagradost.cloudstream3.app
 import com.lagradost.cloudstream3.extractors.DoodLaExtractor
 import com.lagradost.cloudstream3.extractors.Filesim
 import com.lagradost.cloudstream3.extractors.Jeniusplay
@@ -12,7 +15,6 @@ import com.lagradost.cloudstream3.extractors.StreamWishExtractor
 import com.lagradost.cloudstream3.extractors.VidhideExtractor
 import com.lagradost.cloudstream3.extractors.Vidplay
 import com.lagradost.cloudstream3.extractors.helper.GogoHelper
-import com.KillerDogeEmpire.MoviesDriveProvider.Mdrive
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.loadExtractor
@@ -29,6 +31,26 @@ abstract class MediaProvider {
             data: LinkData,
             subtitleCallback: (SubtitleFile) -> Unit,
             callback: (ExtractorLink) -> Unit
+    )
+
+    companion object {
+        var keys: Keys? = null
+    }
+
+    open suspend fun getKeys(): Keys {
+        if (keys == null) {
+            keys =
+                    app.get("https://rowdy-avocado.github.io/multi-keys/").parsedSafe<Keys>()
+                            ?: throw Exception("Unable to fetch keys")
+        }
+        return keys!!
+    }
+
+    data class Keys(
+            @JsonProperty("chillx") val chillx: List<String>,
+            @JsonProperty("aniwave") val aniwave: List<String>,
+            @JsonProperty("cinezone") val cinezone: List<String>,
+            @JsonProperty("vidplay") val vidplay: List<String>
     )
 }
 
@@ -217,8 +239,8 @@ object UltimaMediaProvidersUtils {
                     )
                 }
                 ServerName.MDrive ->
-                    AnyMDrive(providerName, dubStatus, domain)
-                        .getUrl(url, domain, subtitleCallback, callback)
+                        AnyMDrive(providerName, dubStatus, domain)
+                                .getUrl(url, domain, subtitleCallback, callback)
                 ServerName.Custom -> {
                     callback.invoke(
                             ExtractorLink(
@@ -326,9 +348,9 @@ class AnyDoodExtractor(provider: String?, dubType: String?, domain: String = "")
 
 class AnyMDrive(provider: String?, dubType: String?, domain: String = "") : Mdrive() {
     override var name =
-        (if (provider != null) "$provider: " else "") +
-                "MDrive" +
-                (if (dubType != null) ": $dubType" else "")
+            (if (provider != null) "$provider: " else "") +
+                    "MDrive" +
+                    (if (dubType != null) ": $dubType" else "")
     override var mainUrl = domain
     override val requiresReferer = false
 }

@@ -36,7 +36,8 @@ class CineZoneMediaProvider : MediaProvider() {
         val id =
                 searchPage.selectFirst("div.tooltipBtn")?.attr("data-tip")?.split("?/")?.get(0)
                         ?: return
-        val seasonDataUrl = "$url/ajax/episode/list/$id?vrf=${vrfEncrypt(id)}"
+        val idVrf = vrfEncrypt(getKeys().cinezone.first(), id)
+        val seasonDataUrl = "$url/ajax/episode/list/$id?vrf=$idVrf"
         val seasonData = app.get(seasonDataUrl).parsedSafe<ApiResponseHTML>()?.html() ?: return
         val episodeId =
                 seasonData
@@ -47,16 +48,18 @@ class CineZoneMediaProvider : MediaProvider() {
                         ?.find { it.attr("data-num").equals(data.episode?.toString() ?: "1") }
                         ?.attr("data-id")
                         ?: return
-        val episodeDataUrl = "$url/ajax/server/list/$episodeId?vrf=${vrfEncrypt(episodeId)}"
+        val epVrf = vrfEncrypt(getKeys().cinezone.first(), episodeId)
+        val episodeDataUrl = "$url/ajax/server/list/$episodeId?vrf=$epVrf"
         val episodeData = app.get(episodeDataUrl).parsedSafe<ApiResponseHTML>()?.html() ?: return
 
         episodeData.body().select(".server").apmap {
             val serverId = it.attr("data-id")
             val dataId = it.attr("data-link-id")
-            val serverResUrl = "$url/ajax/server/$dataId?vrf=${vrfEncrypt(dataId)}"
+            val dataVrf = vrfEncrypt(getKeys().cinezone.first(), dataId)
+            val serverResUrl = "$url/ajax/server/$dataId?vrf=$dataVrf"
             val serverRes = app.get(serverResUrl).parsedSafe<ApiResponseServer>()
             val encUrl = serverRes?.result?.url ?: return@apmap
-            val decUrl = vrfDecrypt(encUrl)
+            val decUrl = vrfDecrypt(getKeys().cinezone.last(), encUrl)
             commonLinkLoader(
                     name,
                     mapServerName(serverId),
@@ -70,8 +73,8 @@ class CineZoneMediaProvider : MediaProvider() {
     }
 
     // #region - Encryption and Decryption handlers
-    fun vrfEncrypt(input: String): String {
-        val rc4Key = SecretKeySpec("Ij4aiaQXgluXQRs6".toByteArray(), "RC4")
+    fun vrfEncrypt(key: String, input: String): String {
+        val rc4Key = SecretKeySpec(key.toByteArray(), "RC4")
         val cipher = Cipher.getInstance("RC4")
         cipher.init(Cipher.DECRYPT_MODE, rc4Key, cipher.parameters)
 
@@ -85,11 +88,11 @@ class CineZoneMediaProvider : MediaProvider() {
         return stringVrf
     }
 
-    fun vrfDecrypt(input: String): String {
+    fun vrfDecrypt(key: String, input: String): String {
         var vrf = input.toByteArray()
         vrf = Base64.decode(vrf, Base64.URL_SAFE)
 
-        val rc4Key = SecretKeySpec("8z5Ag5wgagfsOuhz".toByteArray(), "RC4")
+        val rc4Key = SecretKeySpec(key.toByteArray(), "RC4")
         val cipher = Cipher.getInstance("RC4")
         cipher.init(Cipher.DECRYPT_MODE, rc4Key, cipher.parameters)
         vrf = cipher.doFinal(vrf)

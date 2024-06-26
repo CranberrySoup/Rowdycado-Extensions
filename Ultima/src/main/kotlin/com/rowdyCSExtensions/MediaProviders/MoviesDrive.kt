@@ -1,6 +1,5 @@
 package com.KillerDogeEmpire
 
-import android.util.Log
 import com.KillerDogeEmpire.UltimaMediaProvidersUtils.ServerName.*
 import com.KillerDogeEmpire.UltimaMediaProvidersUtils.createSlug
 import com.KillerDogeEmpire.UltimaMediaProvidersUtils.getBaseUrl
@@ -20,14 +19,14 @@ class MoviesDriveProvider : MediaProvider() {
     override val categories = listOf(Category.MEDIA)
 
     override suspend fun loadContent(
-        url: String,
-        data: LinkData,
-        subtitleCallback: (SubtitleFile) -> Unit,
-        callback: (ExtractorLink) -> Unit
+            url: String,
+            data: LinkData,
+            subtitleCallback: (SubtitleFile) -> Unit,
+            callback: (ExtractorLink) -> Unit
     ) {
-        val title=data.title
-        val season=data.season
-        val episode=data.episode
+        val title = data.title
+        val season = data.season
+        val episode = data.episode
         try {
             val fixTitle = title.createSlug()
             val mediaurl = "$url/$fixTitle"
@@ -37,11 +36,18 @@ class MoviesDriveProvider : MediaProvider() {
                     val link = it.attr("href")
                     val urls = ExtractMdrive(link)
                     urls.forEach { servers ->
-                        val domain= getBaseUrl(servers)
-                        when(domain) {
-                            "https://gamerxyt.com"-> UltimaMediaProvidersUtils.commonLinkLoader(
-                                name, MDrive, servers, null, null, subtitleCallback, callback
-                            )
+                        val domain = getBaseUrl(servers)
+                        when (domain) {
+                            "https://gamerxyt.com" ->
+                                    UltimaMediaProvidersUtils.commonLinkLoader(
+                                            name,
+                                            MDrive,
+                                            servers,
+                                            null,
+                                            null,
+                                            subtitleCallback,
+                                            callback
+                                    )
                         }
                     }
                 }
@@ -56,21 +62,28 @@ class MoviesDriveProvider : MediaProvider() {
                         doc.select("h5:matches((?i)$sep)").forEach { epElement ->
                             val linklist = mutableListOf<String>()
                             epElement.nextElementSibling()?.let { sibling ->
-                                sibling.selectFirst("h5 > a")
-                                    ?.let { linklist.add(it.attr("href")) }
+                                sibling.selectFirst("h5 > a")?.let { linklist.add(it.attr("href")) }
                                 sibling.nextElementSibling()?.let { nextSibling ->
-                                    nextSibling.selectFirst("h5 > a")
-                                        ?.let { linklist.add(it.attr("href")) }
+                                    nextSibling.selectFirst("h5 > a")?.let {
+                                        linklist.add(it.attr("href"))
+                                    }
                                 }
                             }
                             linklist.forEach { url ->
                                 val links = ExtractMdriveSeries(url)
                                 links.forEach { link ->
-                                    val domain= getBaseUrl(link)
-                                    when(domain) {
-                                        "https://gamerxyt.com"-> UltimaMediaProvidersUtils.commonLinkLoader(
-                                            name, MDrive, link, null, null, subtitleCallback, callback
-                                        )
+                                    val domain = getBaseUrl(link)
+                                    when (domain) {
+                                        "https://gamerxyt.com" ->
+                                                UltimaMediaProvidersUtils.commonLinkLoader(
+                                                        name,
+                                                        MDrive,
+                                                        link,
+                                                        null,
+                                                        null,
+                                                        subtitleCallback,
+                                                        callback
+                                                )
                                     }
                                 }
                             }
@@ -78,28 +91,25 @@ class MoviesDriveProvider : MediaProvider() {
                     }
                 }
             }
-        }
-        catch (e: Exception)
-        {
-            Log.e("Exception Error", e.toString())
-        }
+        } catch (e: Exception) {}
     }
 
     suspend fun ExtractMdrive(url: String): MutableList<String> {
-        val doc= app.get(url).document
-        val linklist= mutableListOf(String())
+        val doc = app.get(url).document
+        val linklist = mutableListOf(String())
         doc.select("h5 > a").forEach {
-            val link=it.attr("href").replace("lol","day")
-            if (!link.contains("gdtot"))
-            {
-                val mainpage= app.get(link).document.selectFirst("a.btn.btn-primary")?.attr("href").toString()
-                if (!mainpage.contains("https://"))
-                {
-                    val newlink= "https://hubcloud.day$mainpage"
+            val link = it.attr("href").replace("lol", "day")
+            if (!link.contains("gdtot")) {
+                val mainpage =
+                        app.get(link)
+                                .document
+                                .selectFirst("a.btn.btn-primary")
+                                ?.attr("href")
+                                .toString()
+                if (!mainpage.contains("https://")) {
+                    val newlink = "https://hubcloud.day$mainpage"
                     linklist.add(newlink)
-                }
-                else
-                {
+                } else {
                     linklist.add(mainpage)
                 }
             }
@@ -108,8 +118,13 @@ class MoviesDriveProvider : MediaProvider() {
     }
 
     suspend fun ExtractMdriveSeries(url: String): MutableList<String> {
-        val linklist= mutableListOf(String())
-        val mainpage = app.get(url.replace("lol","day")).document.selectFirst("a.btn.btn-primary")?.attr("href").toString()
+        val linklist = mutableListOf(String())
+        val mainpage =
+                app.get(url.replace("lol", "day"))
+                        .document
+                        .selectFirst("a.btn.btn-primary")
+                        ?.attr("href")
+                        .toString()
         if (!mainpage.contains("https://")) {
             val newlink = "https://hubcloud.day$mainpage"
             linklist.add(newlink)
@@ -119,7 +134,7 @@ class MoviesDriveProvider : MediaProvider() {
         return linklist
     }
 
-// Extractor
+    // Extractor
 
     open class Mdrive : ExtractorApi() {
         override val name: String = "Mdrive"
@@ -127,47 +142,43 @@ class MoviesDriveProvider : MediaProvider() {
         override val requiresReferer = false
 
         override suspend fun getUrl(
-            url: String,
-            referer: String?,
-            subtitleCallback: (SubtitleFile) -> Unit,
-            callback: (ExtractorLink) -> Unit
+                url: String,
+                referer: String?,
+                subtitleCallback: (SubtitleFile) -> Unit,
+                callback: (ExtractorLink) -> Unit
         ) {
-            val host=url.substringAfter("?").substringBefore("&")
-            val id=url.substringAfter("id=").substringBefore("&")
-            val token=url.substringAfter("token=").substringBefore("&")
-            val Cookie="$host; hostid=$id; hosttoken=$token"
-            val doc = app.get("$mainUrl/games/",headers = mapOf("Cookie" to Cookie)).document
+            val host = url.substringAfter("?").substringBefore("&")
+            val id = url.substringAfter("id=").substringBefore("&")
+            val token = url.substringAfter("token=").substringBefore("&")
+            val Cookie = "$host; hostid=$id; hosttoken=$token"
+            val doc = app.get("$mainUrl/games/", headers = mapOf("Cookie" to Cookie)).document
             val links = doc.select("div.card-body > h2 > a").attr("href")
             val header = doc.selectFirst("div.card-header")?.text()
-            if (links.contains("pixeldrain"))
-            {
+            if (links.contains("pixeldrain")) {
                 callback.invoke(
-                    ExtractorLink(
-                        "MovieDrive",
-                        "PixelDrain",
-                        links,
-                        referer = links,
-                        quality = UltimaMediaProvidersUtils.getIndexQuality(header),
-                        type = INFER_TYPE
-                    )
-                )
-            }else
-                if (links.contains("gofile")) {
-                    loadExtractor(links, subtitleCallback, callback)
-                }
-                else {
-                    callback.invoke(
                         ExtractorLink(
-                            "MovieDrive",
-                            "MovieDrive",
-                            links,
-                            referer = "",
-                            quality = UltimaMediaProvidersUtils.getIndexQuality(header),
-                            type = INFER_TYPE
+                                "MovieDrive",
+                                "PixelDrain",
+                                links,
+                                referer = links,
+                                quality = UltimaMediaProvidersUtils.getIndexQuality(header),
+                                type = INFER_TYPE
                         )
-                    )
-                }
+                )
+            } else if (links.contains("gofile")) {
+                loadExtractor(links, subtitleCallback, callback)
+            } else {
+                callback.invoke(
+                        ExtractorLink(
+                                "MovieDrive",
+                                "MovieDrive",
+                                links,
+                                referer = "",
+                                quality = UltimaMediaProvidersUtils.getIndexQuality(header),
+                                type = INFER_TYPE
+                        )
+                )
+            }
         }
     }
-
 }

@@ -1,14 +1,16 @@
 package com.RowdyAvocado
 
 import android.util.Base64
+import java.net.URI
 import java.net.URLDecoder
 import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
 
+@OptIn(kotlin.ExperimentalStdlibApi::class)
 object CineZoneUtils {
 
-    fun vrfEncrypt(input: String): String {
-        val rc4Key = SecretKeySpec("Ij4aiaQXgluXQRs6".toByteArray(), "RC4")
+    fun vrfEncrypt(key: String, input: String): String {
+        val rc4Key = SecretKeySpec(key.toByteArray(), "RC4")
         val cipher = Cipher.getInstance("RC4")
         cipher.init(Cipher.DECRYPT_MODE, rc4Key, cipher.parameters)
 
@@ -22,11 +24,11 @@ object CineZoneUtils {
         return stringVrf
     }
 
-    fun vrfDecrypt(input: String): String {
+    fun vrfDecrypt(key: String, input: String): String {
         var vrf = input.toByteArray()
         vrf = Base64.decode(vrf, Base64.URL_SAFE)
 
-        val rc4Key = SecretKeySpec("8z5Ag5wgagfsOuhz".toByteArray(), "RC4")
+        val rc4Key = SecretKeySpec(key.toByteArray(), "RC4")
         val cipher = Cipher.getInstance("RC4")
         cipher.init(Cipher.DECRYPT_MODE, rc4Key, cipher.parameters)
         vrf = cipher.doFinal(vrf)
@@ -52,5 +54,9 @@ object CineZoneUtils {
             vrf[i] = vrf[i].plus(shift).toByte()
         }
         return vrf
+    }
+
+    fun getBaseUrl(url: String): String {
+        return URI(url).let { "${it.scheme}://${it.host}" }
     }
 }

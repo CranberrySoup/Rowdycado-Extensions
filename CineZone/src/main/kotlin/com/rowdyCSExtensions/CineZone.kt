@@ -1,7 +1,5 @@
 package com.RowdyAvocado
 
-// import android.util.Log
-
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.MainAPI
@@ -12,15 +10,24 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 
 class CineZone(val plugin: CineZonePlugin) : MainAPI() {
-    override var mainUrl = CineZone.mainUrl
-    override var name = CineZone.name
+    override var mainUrl = "https://cinezone.to"
+    override var name = "CineZone"
     override val supportedTypes = setOf(TvType.Movie, TvType.TvSeries)
     override var lang = "en"
     override val hasMainPage = true
 
     companion object {
-        val mainUrl = "https://cinezone.to"
-        var name = "CineZone"
+        var keys: Pair<String, String>? = null
+    }
+
+    private suspend fun getKeys(): Pair<String, String> {
+        if (keys == null) {
+            val res =
+                    app.get("https://rowdy-avocado.github.io/multi-keys/").parsedSafe<Keys>()
+                            ?: throw Exception("Unable to fetch keys")
+            keys = res.keys.first() to res.keys.last()
+        }
+        return keys!!
     }
 
     private fun searchResponseBuilder(webDocument: Document): List<SearchResponse> {
@@ -53,7 +60,8 @@ class CineZone(val plugin: CineZonePlugin) : MainAPI() {
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val url = request.data + page
         val res = app.get(url)
-        if (res.code != 200) throw ErrorLoadingException("Could not load data")
+        if (res.code != 200 || res.document.title().contains("WAF"))
+                throw ErrorLoadingException("Unable to connect to the domain $mainUrl")
         val home = searchResponseBuilder(res.document)
         return newHomePageResponse(HomePageList(request.name, home), true)
     }
@@ -61,7 +69,8 @@ class CineZone(val plugin: CineZonePlugin) : MainAPI() {
     override suspend fun load(url: String): LoadResponse {
         val res = app.get(url)
 
-        if (res.code != 200) throw ErrorLoadingException("Could not load data" + url)
+        if (res.code != 200 || res.document.title().contains("WAF"))
+                throw ErrorLoadingException("Could not load data ")
         res.document.selectFirst("section#playerDetail")?.let { details ->
             val contentId = res.document.select("body main > div.container").attr("data-id")
             val name = details.selectFirst("div.body > h1")?.ownText() ?: ""
@@ -76,7 +85,7 @@ class CineZone(val plugin: CineZonePlugin) : MainAPI() {
                                 ?.attr("data-id")
                 return newMovieLoadResponse(name, url, TvType.Movie, id) {
                     this.plot = details.select("div.description").text()
-                    this.year = releaseDate.split(",").get(1).trim().toInt()
+                    this.year = releaseDate.split(",").get(1).trim().toIntOrNull()
                     this.posterUrl = res.document.select("div.poster > div > img").attr("src")
                     this.backgroundPosterUrl = bgPoster ?: posterUrl
                     this.rating =
@@ -133,7 +142,7 @@ class CineZone(val plugin: CineZonePlugin) : MainAPI() {
     }
 
     private suspend fun apiCall(prefix: String, data: String): Document? {
-        val vrf = CineZoneUtils.vrfEncrypt(data)
+        val vrf = CineZoneUtils.vrfEncrypt(getKeys().first, data)
         val res = app.get("$mainUrl/ajax/$prefix/$data?vrf=$vrf").parsedSafe<APIResponseHTML>()
         if (res?.status == 200) {
             return res.html
@@ -142,10 +151,10 @@ class CineZone(val plugin: CineZonePlugin) : MainAPI() {
     }
 
     private suspend fun getServerUrl(data: String): String {
-        val vrf = CineZoneUtils.vrfEncrypt(data)
+        val vrf = CineZoneUtils.vrfEncrypt(getKeys().first, data)
         val res = app.get("$mainUrl/ajax/server/$data?vrf=$vrf").parsedSafe<APIResponseJSON>()
         if (res?.status == 200) {
-            return CineZoneUtils.vrfDecrypt(res.result.url)
+            return CineZoneUtils.vrfDecrypt(getKeys().second, res.result.url)
         }
         return ""
     }
@@ -190,4 +199,6 @@ class CineZone(val plugin: CineZonePlugin) : MainAPI() {
             @JsonProperty("label") val lang: String,
             @JsonProperty("kind") val kind: String,
     )
+
+    data class Keys(@JsonProperty("cinezone") val keys: List<String>)
 }

@@ -2,16 +2,16 @@ package com.KillerDogeEmpire
 
 import android.util.Base64
 import com.lagradost.cloudstream3.syncproviders.SyncIdName
-import java.net.URLDecoder
 import java.net.URI
+import java.net.URLDecoder
 import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
 
 @OptIn(kotlin.ExperimentalStdlibApi::class)
 object AniwaveUtils {
 
-    fun vrfEncrypt(input: String): String {
-        val rc4Key = SecretKeySpec("tGn6kIpVXBEUmqjD".toByteArray(), "RC4")
+    fun vrfEncrypt(key: String, input: String): String {
+        val rc4Key = SecretKeySpec(key.toByteArray(), "RC4")
         val cipher = Cipher.getInstance("RC4")
         cipher.init(Cipher.DECRYPT_MODE, rc4Key, cipher.parameters)
 
@@ -26,11 +26,11 @@ object AniwaveUtils {
         return "vrf=${java.net.URLEncoder.encode(stringVrf, "utf-8")}"
     }
 
-    fun vrfDecrypt(input: String): String {
+    fun vrfDecrypt(key: String, input: String): String {
         var vrf = input.toByteArray()
         vrf = Base64.decode(vrf, Base64.URL_SAFE)
 
-        val rc4Key = SecretKeySpec("LUyDrL4qIxtIxOGs".toByteArray(), "RC4")
+        val rc4Key = SecretKeySpec(key.toByteArray(), "RC4")
         val cipher = Cipher.getInstance("RC4")
         cipher.init(Cipher.DECRYPT_MODE, rc4Key, cipher.parameters)
         vrf = cipher.doFinal(vrf)

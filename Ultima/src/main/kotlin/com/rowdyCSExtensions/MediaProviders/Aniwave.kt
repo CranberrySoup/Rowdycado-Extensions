@@ -36,7 +36,8 @@ class AniwaveMediaProvider : MediaProvider() {
         val id =
                 searchPage.selectFirst("div.poster")?.attr("data-tip")?.split("?/")?.get(0)
                         ?: return
-        val seasonDataUrl = "$url/ajax/episode/list/$id?vrf=${vrfEncrypt(id)}"
+        val idVrf = vrfEncrypt(getKeys().aniwave.first(), id)
+        val seasonDataUrl = "$url/ajax/episode/list/$id?vrf=$idVrf"
         val seasonData = app.get(seasonDataUrl).parsedSafe<ApiResponseHTML>()?.html() ?: return
         val episodeIds =
                 seasonData
@@ -45,7 +46,8 @@ class AniwaveMediaProvider : MediaProvider() {
                         .find { it.attr("data-num").equals(episode.toString()) }
                         ?.attr("data-ids")
                         ?: return
-        val episodeDataUrl = "$url/ajax/server/list/$episodeIds?vrf=${vrfEncrypt(episodeIds)}"
+        val episodeIdsVrf = vrfEncrypt(getKeys().aniwave.first(), episodeIds)
+        val episodeDataUrl = "$url/ajax/server/list/$episodeIds?vrf=$episodeIdsVrf"
         val episodeData = app.get(episodeDataUrl).parsedSafe<ApiResponseHTML>()?.html() ?: return
 
         episodeData.body().select(".servers .type").apmap {
@@ -53,10 +55,11 @@ class AniwaveMediaProvider : MediaProvider() {
             it.select("li").apmap LinkLoader@{
                 val serverId = it.attr("data-sv-id")
                 val dataId = it.attr("data-link-id")
-                val serverResUrl = "$url/ajax/server/$dataId?vrf=${vrfEncrypt(dataId)}"
+                val dataIdVrf = vrfEncrypt(getKeys().aniwave.first(), dataId)
+                val serverResUrl = "$url/ajax/server/$dataId?vrf=$dataIdVrf"
                 val serverRes = app.get(serverResUrl).parsedSafe<ApiResponseServer>()
                 val encUrl = serverRes?.result?.url ?: return@LinkLoader
-                val decUrl = vrfDecrypt(encUrl)
+                val decUrl = vrfDecrypt(getKeys().aniwave.last(), encUrl)
                 commonLinkLoader(
                         name,
                         mapServerName(serverId),
@@ -81,8 +84,8 @@ class AniwaveMediaProvider : MediaProvider() {
     }
 
     // #region - Encryption and Decryption handlers
-    fun vrfEncrypt(input: String): String {
-        val rc4Key = SecretKeySpec("tGn6kIpVXBEUmqjD".toByteArray(), "RC4")
+    fun vrfEncrypt(key: String, input: String): String {
+        val rc4Key = SecretKeySpec(key.toByteArray(), "RC4")
         val cipher = Cipher.getInstance("RC4")
         cipher.init(Cipher.DECRYPT_MODE, rc4Key, cipher.parameters)
 
@@ -98,11 +101,11 @@ class AniwaveMediaProvider : MediaProvider() {
         return final
     }
 
-    fun vrfDecrypt(input: String): String {
+    fun vrfDecrypt(key: String, input: String): String {
         var vrf = input.toByteArray()
         vrf = Base64.decode(vrf, Base64.URL_SAFE)
 
-        val rc4Key = SecretKeySpec("LUyDrL4qIxtIxOGs".toByteArray(), "RC4")
+        val rc4Key = SecretKeySpec(key.toByteArray(), "RC4")
         val cipher = Cipher.getInstance("RC4")
         cipher.init(Cipher.DECRYPT_MODE, rc4Key, cipher.parameters)
         vrf = cipher.doFinal(vrf)

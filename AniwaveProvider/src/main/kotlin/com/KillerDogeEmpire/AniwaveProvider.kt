@@ -1,7 +1,5 @@
 package com.KillerDogeEmpire
 
-// import android.util.Log //(only required for debugging)
-
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.Episode
@@ -30,10 +28,22 @@ class AniwaveProvider : MainAPI() {
     override val hasQuickSearch = true
 
     companion object {
+        var keys: Pair<String, String>? = null
+
         fun encode(input: String): String =
                 java.net.URLEncoder.encode(input, "utf-8").replace("+", "%2B")
 
         private fun decode(input: String): String = java.net.URLDecoder.decode(input, "utf-8")
+    }
+
+    private suspend fun getKeys(): Pair<String, String> {
+        if (keys == null) {
+            val res =
+                    app.get("https://rowdy-avocado.github.io/multi-keys/").parsedSafe<Keys>()
+                            ?: throw Exception("Unable to fetch keys")
+            keys = res.keys.first() to res.keys.last()
+        }
+        return keys!!
     }
 
     private fun Element.toSearchResponse(): SearchResponse? {
@@ -101,7 +111,7 @@ class AniwaveProvider : MainAPI() {
         val title =
                 (info.selectFirst(".title") ?: info.selectFirst(".d-title"))?.text()
                         ?: throw ErrorLoadingException("Could not find title")
-        val vrf = AniwaveUtils.vrfEncrypt(id)
+        val vrf = AniwaveUtils.vrfEncrypt(getKeys().first, id)
         val episodeListUrl = "$mainUrl/ajax/episode/list/$id?$vrf"
         val body =
                 app.get(episodeListUrl).parsedSafe<Response>()?.getHtml()
@@ -289,7 +299,7 @@ class AniwaveProvider : MainAPI() {
             callback: (ExtractorLink) -> Unit
     ): Boolean {
         val parseData = AppUtils.parseJson<SubDubInfo>(data)
-        val datavrf = AniwaveUtils.vrfEncrypt(parseData.ID)
+        val datavrf = AniwaveUtils.vrfEncrypt(getKeys().first, parseData.ID)
         val one = app.get("$mainUrl/ajax/server/list/${parseData.ID}?$datavrf").parsed<Response>()
         val two = one.getHtml()
         val aas =
@@ -301,10 +311,10 @@ class AniwaveProvider : MainAPI() {
                 }
         aas.amap { (sName, sId) ->
             try {
-                val vrf = AniwaveUtils.vrfEncrypt(sId)
+                val vrf = AniwaveUtils.vrfEncrypt(getKeys().first, sId)
                 val videncrr = app.get("$mainUrl/ajax/server/$sId?$vrf").parsed<Links>()
                 val encUrl = videncrr.result?.url ?: return@amap
-                val asss = AniwaveUtils.vrfDecrypt(encUrl)
+                val asss = AniwaveUtils.vrfDecrypt(getKeys().second, encUrl)
 
                 if (sName.equals("filemoon")) {
                     val res = app.get(asss)
@@ -437,4 +447,6 @@ class AniwaveProvider : MainAPI() {
             @JsonProperty("ID") val ID: String,
             @JsonProperty("type") val type: String
     )
+
+    data class Keys(@JsonProperty("aniwave") val keys: List<String>)
 }
